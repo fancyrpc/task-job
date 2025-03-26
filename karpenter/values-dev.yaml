@@ -1,6 +1,6 @@
 serviceAccount:
   annotations:
-    eks.amazonaws.com/role-arn: "arn:aws:iam::814322484930:role/KarpenterControllerRole-infra-developing-dev"
+    eks.amazonaws.com/role-arn: "arn:aws:iam::XXXXXXXXXXXXX:role/KarpenterControllerRole-infra-demo"
 
 settings:
   clusterName: "infra-demo"
