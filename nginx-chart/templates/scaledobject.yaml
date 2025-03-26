@@ -1,0 +1,40 @@
+{{- if .Values.keda.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "nginx.fullname" . }}
+  labels:
+    {{- include "nginx.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "nginx.fullname" . }}
+  minReplicaCount: {{ .Values.replicaCount.min }}
+  maxReplicaCount: {{ .Values.replicaCount.max }}
+  pollingInterval: {{ .Values.keda.pollingInterval }}
+  cooldownPeriod: {{ .Values.keda.cooldownPeriod }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Percent
+            value: 20
+            periodSeconds: 60
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+  triggers:
+  {{- range .Values.keda.triggers }}
+  - type: {{ .type }}
+    metadata:
+      {{- range $key, $value := .metadata }}
+      {{ $key }}: {{ $value | quote }}
+      {{- end }}
+  {{- end }}
+{{- end }} 

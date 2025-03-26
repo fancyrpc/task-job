@@ -1,0 +1,27 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "nginx.fullname" . }}
+  labels:
+    {{- include "nginx.labels" . | nindent 4 }}
+rules:
+  # права
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  #  масштабирование деплоймента
+  {{- if .Values.keda.enabled }}
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["{{ include "nginx.fullname" . }}"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    resourceNames: ["{{ include "nginx.fullname" . }}"]
+    verbs: ["get", "update", "patch"]
+  {{- end }}
+  {{- if .Values.rbac.additionalRules }}
+  {{- toYaml .Values.rbac.additionalRules | nindent 2 }}
+  {{- end }}
+{{- end }} 

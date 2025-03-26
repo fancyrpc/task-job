@@ -1,0 +1,84 @@
+nginx:
+  image:
+    repository: nginx
+    tag: 1.25.3-alpine
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  
+  # Конфиг NGINX
+  config:
+    workerProcesses: auto
+    workerConnections: 1024
+    keepaliveTimeout: 65
+    clientMaxBodySize: 10m
+    logFormat: |
+      '$remote_addr - $remote_user [$time_local] "$request" '
+      '$status $body_bytes_sent "$http_referer" '
+      '"$http_user_agent" "$http_x_forwarded_for" '
+      '$request_time $upstream_response_time'
+    errorLogLevel: warn
+    proxyConnectTimeout: 75
+    proxyReadTimeout: 300
+    proxySendTimeout: 300
+
+service:
+  type: ClusterIP
+  port: 80
+  metricsPort: 8080
+
+replicaCount:
+  min: 3
+  max: 10
+
+# KEDA скалирование по мтерикам из prom
+keda:
+  enabled: true
+  pollingInterval: 15
+  cooldownPeriod: 300
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        metricName: nginx_requests_status_504_percentile
+        query: |
+          quantile_over_time(0.95, 
+            sum(rate(nginx_http_requests_total{status="504"}[5m])) / 
+            sum(rate(nginx_http_requests_total[5m])) * 100
+          )[30m:1m]
+        threshold: "5"
+
+rbac:
+  create: true
+  clusterWide: false
+  additionalRules: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+networkPolicy:
+  enabled: true
+  additionalRules: []
+
+# ручка для метрик
+prometheus:
+  enabled: true
+
+kubernetes:
+  apiServer: "10.0.0.1"
+
+# тесты в чарте wget проверка на fqdn svc nginx
+test:
+  enabled: true
+  image:
+    repository: curlimages/curl
+    tag: latest
+    pullPolicy: IfNotPresent 

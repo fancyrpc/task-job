@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nginx.fullname" . }}-config
+  labels:
+    {{- include "nginx.labels" . | nindent 4 }}
+data:
+  nginx.conf: |-
+    user nginx;
+    worker_processes {{ .Values.nginx.config.workerProcesses }};
+    error_log /var/log/nginx/error.log {{ .Values.nginx.config.errorLogLevel }};
+    pid /var/run/nginx.pid;
+
+    events {
+      worker_connections {{ .Values.nginx.config.workerConnections }};
+    }
+
+    http {
+      include /etc/nginx/mime.types;
+      default_type application/octet-stream;
+
+      log_format main {{ .Values.nginx.config.logFormat }};
+      access_log /var/log/nginx/access.log main;
+
+      sendfile on;
+      tcp_nopush on;
+      tcp_nodelay on;
+      keepalive_timeout {{ .Values.nginx.config.keepaliveTimeout }};
+      
+      # Настройки таймаутов для предотвращения ошибок 504
+      proxy_connect_timeout {{ .Values.nginx.config.proxyConnectTimeout }}s;
+      proxy_read_timeout {{ .Values.nginx.config.proxyReadTimeout }}s;
+      proxy_send_timeout {{ .Values.nginx.config.proxySendTimeout }}s;
+      
+      # Включение метрик для Prometheus
+      server {
+        listen {{ .Values.service.metricsPort }};
+        location /metrics {
+          stub_status on;
+        }
+      }
+
+      # Основной веб-сервер
+      server {
+        listen 80;
+        
+        location / {
+          root /usr/share/nginx/html;
+          index index.html index.htm;
+        }
+        
+        client_max_body_size {{ .Values.nginx.config.clientMaxBodySize }};
+        
+        # Обработка ошибок
+        error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+          root /usr/share/nginx/html;
+        }
+      }
+    } 

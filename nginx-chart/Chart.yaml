@@ -1,0 +1,18 @@
+apiVersion: v2
+name: nginx
+description: Nginx/KEDA
+type: application
+version: 0.1.0
+appVersion: "1.25.3"
+dependencies:
+  - name: keda
+    version: "2.11.2"
+    repository: "https://kedacore.github.io/charts"
+    condition: keda.enabled
+    alias: keda
+keywords:
+  - nginx
+  - keda
+maintainers:
+  - name: Ilya Panarin
+    email: fancyrpc@gmail.com

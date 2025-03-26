@@ -1,0 +1,31 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "nginx.fullname" . }}-alerts
+  labels:
+    {{- include "nginx.labels" . | nindent 4 }}
+spec:
+  groups:
+  - name: nginx.rules
+    rules:
+    - alert: NginxHigh504Rate
+      expr: |
+        sum(rate(nginx_http_requests_total{status="504",service="{{ include "nginx.fullname" . }}"}[5m])) / 
+        sum(rate(nginx_http_requests_total{service="{{ include "nginx.fullname" . }}"}[5m])) * 100 > 5
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Высокий процент 504 ошибок в NGINX"
+        description: "Процент 504 ошибок превышает 5% в течение 5 минут."
+    - alert: NginxHighLoad
+      expr: |
+        rate(nginx_http_requests_total{service="{{ include "nginx.fullname" . }}"}[3m]) > 1000
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Высокая нагрузка на NGINX"
+        description: "Количество запросов превышает 1000 в секунду в течение 5 минут."
+{{- end }} 

@@ -1,0 +1,51 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nginx.fullname" . }}-network-policy
+  labels:
+    {{- include "nginx.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nginx.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  # Разрешаем входящий трафик только из того же namespace
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+  # Разрешаем исходящий трафик только в пределах namespace и для DNS
+  egress:
+    # Трафик в пределах namespace demo
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+    # DNS трафик (необходим для разрешения имен)
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Доступ к API Kubernetes для KEDA (если требуется)
+    {{- if .Values.keda.enabled }}
+    - to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetes.apiServer }}/32
+      ports:
+        - protocol: TCP
+          port: 443
+    {{- end }}
+    {{- range .Values.networkPolicy.additionalRules }}
+    - {{ toYaml . | nindent 6 }}
+    {{- end }}
+{{- end }} 

@@ -1,0 +1,43 @@
+---
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: dev
+  annotations:
+    kubernetes.io/description: "NodePool for dev workloads"
+spec:
+  template:
+    metadata:
+      labels:
+        node: "app"
+        infra: "dev"
+    spec:
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values:
+            - amd64
+        - key: kubernetes.io/os
+          operator: In
+          values:
+            - linux
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values:
+            - on-demand
+        - key: topology.kubernetes.io/zone
+          operator: In
+          values:
+            - eu-central-1b
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values:
+            - t2.large
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 30s
+

@@ -1,0 +1,19 @@
+{{- if .Values.test.enabled -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "nginx.fullname" . }}-test-connection"
+  labels:
+    {{- include "nginx.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  serviceAccountName: {{ include "nginx.serviceAccountName" . }}
+  containers:
+    - name: wget
+      image: "{{ .Values.test.image.repository }}:{{ .Values.test.image.tag }}"
+      command: ['curl']
+      args: ['-f', 'http://{{ include "nginx.fullname" . }}:{{ .Values.service.port }}/']
+  restartPolicy: Never
+{{- end }} 

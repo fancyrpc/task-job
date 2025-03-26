@@ -1,0 +1,21 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nginx.fullname" . }}
+  labels:
+    {{- include "nginx.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nginx.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: nginx_.*
+      action: keep
+{{- end }} 
